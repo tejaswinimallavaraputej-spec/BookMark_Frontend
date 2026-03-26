@@ -1,46 +1,82 @@
 import { useState, useEffect, useCallback } from 'react'
-import { useNavigate } from 'react-router-dom'
 import {
-  Box, AppBar, Toolbar, Typography, Container, Grid, Card, CardContent,
-  IconButton, Button, Avatar, Drawer, List, ListItem, ListItemIcon, ListItemText,
-  TextField, InputAdornment, Dialog, DialogTitle, DialogContent, DialogActions,
-  CircularProgress, Fab, Skeleton, Badge, Tooltip, Stack, useMediaQuery, useTheme
+  Box, Drawer, AppBar, Toolbar, List, Typography, Divider, IconButton,
+  ListItem, ListItemButton, ListItemIcon, ListItemText, Container, Grid,
+  Card, CardContent, CardActions, Button, TextField, InputBase,
+  Menu, MenuItem, Avatar, Tooltip, Fab, Dialog, DialogTitle,
+  DialogContent, DialogActions, LinearProgress, Pagination,
+  useTheme, useMediaQuery, alpha, styled
 } from '@mui/material'
 import {
-  Bookmark, Shield, Plus, LogOut, ExternalLink, Link2, Search,
-  Globe, Clock, User as UserIcon, BookOpen, Layers, X, Edit2,
-  ChevronLeft, ChevronRight, Menu as MenuIcon, Filter, MoreVertical, Trash2
+  Menu as MenuIcon, Search as SearchIcon, Plus, Bookmark,
+  LogOut, Trash2, ExternalLink, Filter, MoreVertical, LayoutGrid
 } from 'lucide-react'
-import { getBookmarks, createBookmark, deleteBookmark, updateBookmark } from '../api/api'
+import { getBookmarks, createBookmark, deleteBookmark } from '../api/api'
 import { getUser, clearAuth } from '../utils/auth'
+import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 
-const Dashboard = () => {
-  const navigate = useNavigate()
-  const theme = useTheme()
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'))
-  const currentUser = getUser()
+const drawerWidth = 280
 
+const Search = styled('div')(({ theme }) => ({
+  position: 'relative',
+  borderRadius: theme.shape.borderRadius * 2,
+  backgroundColor: alpha(theme.palette.common.white, 0.15),
+  '&:hover': {
+    backgroundColor: alpha(theme.palette.common.white, 0.25),
+  },
+  marginRight: theme.spacing(2),
+  marginLeft: 0,
+  width: '100%',
+  [theme.breakpoints.up('sm')]: {
+    marginLeft: theme.spacing(3),
+    width: 'auto',
+  },
+}))
+
+const SearchIconWrapper = styled('div')(({ theme }) => ({
+  padding: theme.spacing(0, 2),
+  height: '100%',
+  position: 'absolute',
+  pointerEvents: 'none',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+}))
+
+const StyledInputBase = styled(InputBase)(({ theme }) => ({
+  color: 'inherit',
+  '& .MuiInputBase-input': {
+    padding: theme.spacing(1, 1, 1, 0),
+    paddingLeft: `calc(1em + ${theme.spacing(4)})`,
+    transition: theme.transitions.create('width'),
+    width: '100%',
+    [theme.breakpoints.up('md')]: {
+      width: '40ch',
+    },
+  },
+}))
+
+const Dashboard = () => {
+  const theme = useTheme()
+  const navigate = useNavigate()
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'))
+  const user = getUser()
+  
+  const [mobileOpen, setMobileOpen] = useState(false)
   const [bookmarks, setBookmarks] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [drawerOpen, setDrawerOpen] = useState(false)
+  const [loading, setLoading] = useState(false)
   const [page, setPage] = useState(0)
   const [totalPages, setTotalPages] = useState(0)
-  const [totalElements, setTotalElements] = useState(0)
   const [search, setSearch] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
+  const [openAdd, setOpenAdd] = useState(false)
+  const [newBookmark, setNewBookmark] = useState({ title: '', url: '' })
 
-  const [openDialog, setOpenDialog] = useState(false)
-  const [editingId, setEditingId] = useState(null)
-  const [form, setForm] = useState({ title: '', url: '' })
-  const [submitting, setSubmitting] = useState(false)
-  const [actionId, setActionId] = useState(null)
+  const handleDrawerToggle = () => setMobileOpen(!mobileOpen)
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearch(search)
-      setPage(0)
-    }, 500)
+    const timer = setTimeout(() => setDebouncedSearch(search), 500)
     return () => clearTimeout(timer)
   }, [search])
 
@@ -50,8 +86,7 @@ const Dashboard = () => {
       const res = await getBookmarks(page, 9, debouncedSearch)
       setBookmarks(res.data.content)
       setTotalPages(res.data.totalPages)
-      setTotalElements(res.data.totalElements)
-    } catch {
+    } catch (err) {
       toast.error('Failed to load bookmarks')
     } finally {
       setLoading(false)
@@ -62,214 +97,270 @@ const Dashboard = () => {
     fetchBookmarks()
   }, [fetchBookmarks])
 
-  const handleLogout = () => {
-    clearAuth()
-    toast.success('Goodbye!')
-    navigate('/auth')
-  }
-
-  const handleSave = async () => {
-    if (!form.title.trim() || !form.url.trim()) {
-      toast.error('Please fill in all fields')
-      return
-    }
-
-    setSubmitting(true)
+  const handleAdd = async (e) => {
+    e.preventDefault()
     try {
-      const url = form.url.startsWith('http') ? form.url : 'https://' + form.url
-      if (editingId) {
-        await updateBookmark(editingId, { title: form.title, url })
-        toast.success('Updated!')
-      } else {
-        await createBookmark({ title: form.title, url })
-        toast.success('Added to vault!')
-        setPage(0)
-      }
-      setOpenDialog(false)
-      setForm({ title: '', url: '' })
-      setEditingId(null)
+      await createBookmark(newBookmark)
+      toast.success('Bookmark added!')
+      setOpenAdd(false)
+      setNewBookmark({ title: '', url: '' })
       fetchBookmarks()
     } catch (err) {
-      toast.error(err.response?.data?.error || 'Save failed')
-    } finally {
-      setSubmitting(false)
+      toast.error('Failed to add bookmark')
     }
   }
 
   const handleDelete = async (id) => {
-    setActionId(id)
+    if (!window.confirm('Delete this bookmark?')) return
     try {
       await deleteBookmark(id)
-      toast.success('Removed')
+      toast.success('Deleted')
       fetchBookmarks()
     } catch (err) {
-      toast.error(err.response?.status === 403 ? 'Not yours to delete!' : 'Delete failed')
-    } finally {
-      setActionId(null)
+      toast.error('Failed to delete')
     }
   }
 
-  const NavContent = () => (
-    <Box className="p-4 h-full bg-slate-50 flex flex-col">
-      <Box className="flex items-center gap-3 mb-10 px-2 mt-4">
-        <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/30">
-          <Shield className="w-6 h-6 text-white" />
-        </div>
-        <Typography variant="h6" className="font-black text-slate-900 tracking-tighter uppercase text-base">Vault Explorer</Typography>
-      </Box>
+  const handleLogout = () => {
+    clearAuth()
+    navigate('/auth')
+  }
 
-      <List className="space-y-2 flex-grow">
-        {[
-          { label: 'All Vaults', icon: Layers, active: true },
-          { label: 'My Bookmarks', icon: BookOpen },
-          { label: 'Security Scan', icon: Shield, badge: 'New' },
-        ].map((item) => (
-          <ListItem key={item.label} button className={`rounded-xl py-3 px-4 ${item.active ? 'bg-blue-600 text-white shadow-md' : 'text-slate-500 hover:bg-slate-200/50 hover:text-slate-900'} transition-all`}>
-            <ListItemIcon className="min-w-[40px]"><item.icon className={`w-5 h-5 ${item.active ? 'text-white' : 'text-slate-400'}`} /></ListItemIcon>
-            <ListItemText primary={item.label} primaryTypographyProps={{ variant: 'body2', fontWeight: item.active ? 700 : 500 }} />
-            {item.badge && <Badge badgeContent={item.badge} color="primary" sx={{ '& .MuiBadge-badge': { fontSize: 10, fontWeight: 800 } }} />}
-          </ListItem>
-        ))}
+  const drawer = (
+    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', bgcolor: 'background.paper' }}>
+      <Toolbar sx={{ px: 3, display: 'flex', alignItems: 'center', gap: 2 }}>
+        <Avatar sx={{ bgcolor: 'primary.main', width: 32, height: 32 }}>
+          <Bookmark size={18} />
+        </Avatar>
+        <Typography variant="h6" sx={{ fontWeight: 800, letterSpacing: -0.5, color: 'text.primary' }}>
+          Bookmark
+        </Typography>
+      </Toolbar>
+      <Divider />
+      <List sx={{ px: 2, py: 3 }}>
+        <ListItem disablePadding sx={{ mb: 1 }}>
+          <ListItemButton 
+            selected 
+            sx={{ 
+              borderRadius: 2,
+              '&.Mui-selected': { bgcolor: alpha(theme.palette.primary.main, 0.08), color: 'primary.main' }
+            }}
+          >
+            <ListItemIcon sx={{ color: 'inherit', minWidth: 40 }}>
+              <LayoutGrid size={20} />
+            </ListItemIcon>
+            <ListItemText primary="All Bookmarks" primaryTypographyProps={{ fontWeight: 600 }} />
+          </ListItemButton>
+        </ListItem>
       </List>
-
-      <Box className="mt-auto px-2">
-        <Typography variant="caption" className="text-slate-400 font-bold uppercase tracking-widest block mb-4">Account</Typography>
-        <Box className="flex items-center gap-3 p-3 bg-white rounded-2xl border border-slate-200">
-          <Avatar className="bg-blue-100 text-blue-700 font-black text-xs w-8 h-8">
-            {currentUser?.name?.charAt(0).toUpperCase()}
-          </Avatar>
-          <div className="min-w-0 pr-2">
-            <Typography variant="caption" className="text-slate-900 font-black truncate block line-height-1 mb-[-2px]">{currentUser?.name}</Typography>
-            <Typography variant="caption" className="text-slate-400 font-medium truncate block text-[10px]">Active Session</Typography>
-          </div>
-          <IconButton onClick={handleLogout} size="small" className="ml-auto hover:bg-red-50 hover:text-red-500"><LogOut className="w-4 h-4" /></IconButton>
-        </Box>
+      
+      <Box sx={{ mt: 'auto', p: 2 }}>
+        <Paper variant="outlined" sx={{ p: 2, borderRadius: 3, bgcolor: alpha(theme.palette.primary.main, 0.02) }}>
+          <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 1 }}>Logged in as</Typography>
+          <Typography variant="body2" sx={{ fontWeight: 700, noWrap: true }}>{user?.name}</Typography>
+        </Paper>
       </Box>
     </Box>
   )
 
   return (
-    <Box className="flex min-h-screen bg-white">
-      {!isMobile && (
-        <Drawer variant="permanent" open className="w-[280px] flex-shrink-0" sx={{ '& .MuiDrawer-paper': { width: 280, borderRight: '1px solid #f1f5f9' } }}>
-          <NavContent />
-        </Drawer>
-      )}
+    <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: '#f8fafc' }}>
+      <AppBar
+        position="fixed"
+        elevation={0}
+        sx={{
+          width: { md: `calc(100% - ${drawerWidth}px)` },
+          ml: { md: `${drawerWidth}px` },
+          bgcolor: 'white',
+          borderBottom: '1px solid',
+          borderColor: 'divider',
+          color: 'text.primary'
+        }}
+      >
+        <Toolbar sx={{ justifyContent: 'space-between' }}>
+          <IconButton
+            color="inherit"
+            edge="start"
+            onClick={handleDrawerToggle}
+            sx={{ mr: 2, display: { md: 'none' } }}
+          >
+            <MenuIcon />
+          </IconButton>
+          
+          <Search sx={{ bgcolor: '#f1f5f9', border: '1px solid transparent', '&:hover': { border: '1px solid #e2e8f0' } }}>
+            <SearchIconWrapper>
+              <SearchIcon size={18} color={theme.palette.text.secondary} />
+            </SearchIconWrapper>
+            <StyledInputBase
+              placeholder="Search by title or URL..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              sx={{ color: 'text.primary' }}
+            />
+          </Search>
 
-      {isMobile && (
-        <Drawer open={drawerOpen} onClose={() => setDrawerOpen(false)} sx={{ '& .MuiDrawer-paper': { width: 280 } }}>
-          <NavContent />
-        </Drawer>
-      )}
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Tooltip title="Logout">
+              <IconButton onClick={handleLogout} sx={{ color: 'text.secondary' }}>
+                <LogOut size={20} />
+              </IconButton>
+            </Tooltip>
+          </Box>
+        </Toolbar>
+        {loading && <LinearProgress sx={{ position: 'absolute', bottom: 0, left: 0, right: 0 }} />}
+      </AppBar>
 
-      <Box component="main" className="flex-grow flex flex-col overflow-hidden">
-        <AppBar position="sticky" elevation={0} className="bg-white/80 backdrop-blur-md border-b border-slate-100 z-10">
-          <Toolbar className="px-6 py-4 flex justify-between gap-4">
-            {isMobile && <IconButton onClick={() => setDrawerOpen(true)} className="mr-2 border border-slate-200"><MenuIcon /></IconButton>}
-            
-            <Box className="flex-grow max-w-2xl relative group">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-blue-600 transition-colors" />
-              <input
-                type="text"
-                placeholder="Search resources, titles, or tags..."
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-3 pl-12 pr-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-              />
+      <Box
+        component="nav"
+        sx={{ width: { md: drawerWidth }, flexShrink: { md: 0 } }}
+      >
+        <Drawer
+          variant="temporary"
+          open={mobileOpen}
+          onClose={handleDrawerToggle}
+          ModalProps={{ keepMounted: true }}
+          sx={{
+            display: { xs: 'block', md: 'none' },
+            '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth, borderRight: 'none', boxShadow: 10 },
+          }}
+        >
+          {drawer}
+        </Drawer>
+        <Drawer
+          variant="permanent"
+          sx={{
+            display: { xs: 'none', md: 'block' },
+            '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth, borderRight: '1px solid', borderColor: 'divider' },
+          }}
+          open
+        >
+          {drawer}
+        </Drawer>
+      </Box>
+
+      <Box
+        component="main"
+        sx={{ flexGrow: 1, p: 4, width: { md: `calc(100% - ${drawerWidth}px)` }, mt: 8 }}
+      >
+        <Container maxWidth="lg">
+          <Box className="flex justify-between items-end mb-8">
+            <Box>
+              <Typography variant="h4" sx={{ fontWeight: 900, color: 'text.primary', letterSpacing: -1 }}>
+                My Collection
+              </Typography>
+              <Typography variant="subtitle1" sx={{ color: 'text.secondary' }}>
+                Keep your digital worlds organized
+              </Typography>
             </Box>
+          </Box>
 
-            {!isMobile && (
-              <Button onClick={() => setOpenDialog(true)} variant="contained" startIcon={<Plus className="w-4 h-4" />} className="bg-blue-600 hover:bg-blue-700 py-2.5 px-6 rounded-xl font-bold shadow-lg shadow-blue-500/20 lowercase tracking-tight">
-                New Bookmark
-              </Button>
-            )}
-          </Toolbar>
-        </AppBar>
-
-        <Container maxWidth="xl" className="px-6 py-8 flex-grow">
-          <Grid container spacing={4}>
-            {loading ? (
-              Array.from({ length: 6 }).map((_, i) => (
-                <Grid item key={i} xs={12} sm={6} lg={4}>
-                  <Skeleton variant="rectangular" height={220} className="rounded-3xl" />
-                </Grid>
-              ))
-            ) : bookmarks.length === 0 ? (
-              <Box className="w-full flex flex-col items-center justify-center py-40 opacity-40">
-                <Bookmark className="w-20 h-20 mb-4 stroke-1" />
-                <Typography variant="h5" className="font-black">No links found</Typography>
-                <Typography variant="body2">Start building your secure digital repository today.</Typography>
-              </Box>
-            ) : (
-              bookmarks.map((b) => (
-                <Grid item key={b.id} xs={12} sm={6} lg={4}>
-                  <Card elevation={0} className="rounded-3xl border border-slate-100 bg-slate-50/30 hover:bg-white hover:border-blue-200 hover:shadow-2xl hover:shadow-blue-500/10 transition-all group overflow-hidden">
-                    <CardContent className="p-6">
-                      <Box className="flex items-start justify-between mb-6">
-                        <Box className="w-12 h-12 rounded-2xl bg-white border border-slate-200 flex items-center justify-center shadow-sm">
-                          <img src={`https://www.google.com/s2/favicons?domain=${new URL(b.url).origin}&sz=64`} alt="" className="w-6 h-6" onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'block' }} />
-                          <Globe className="w-6 h-6 text-slate-200 hidden" />
-                        </Box>
-                        <Stack direction="row" spacing={0.5} className="sm:opacity-0 group-hover:opacity-100 transition-opacity">
-                          <Tooltip title="Open Link"><IconButton href={b.url} target="_blank" className="bg-white border border-slate-200 text-slate-500 hover:text-blue-600"><ExternalLink className="w-4 h-4" /></IconButton></Tooltip>
-                          {b.userId === currentUser?.userId && (
-                            <>
-                              <Tooltip title="Edit"><IconButton onClick={() => { setForm({ title: b.title, url: b.url }); setEditingId(b.id); setOpenDialog(true) }} className="bg-white border border-slate-200 text-slate-500 hover:text-green-600"><Edit2 className="w-4 h-4" /></IconButton></Tooltip>
-                              <Tooltip title="Delete"><IconButton disabled={actionId === b.id} onClick={() => handleDelete(b.id)} className="bg-white border border-slate-200 text-slate-500 hover:text-red-600">{actionId === b.id ? <CircularProgress size={16} color="inherit" /> : <Trash2 className="w-4 h-4" />}</IconButton></Tooltip>
-                            </>
-                          )}
-                        </Stack>
+          {bookmarks.length === 0 && !loading ? (
+            <Paper variant="outlined" sx={{ p: 8, textAlign: 'center', borderRadius: 5, borderStyle: 'dashed' }}>
+              <Bookmark size={48} className="mx-auto mb-4 text-slate-300" />
+              <Typography variant="h6" sx={{ color: 'text.secondary', fontWeight: 700 }}>No bookmarks found</Typography>
+              <Button onClick={() => setOpenAdd(true)} variant="contained" sx={{ mt: 2, borderRadius: 2 }}>Add your first one</Button>
+            </Paper>
+          ) : (
+            <Grid container spacing={3}>
+              {bookmarks.map((bm) => (
+                <Grid item xs={12} sm={6} lg={4} key={bm.id}>
+                  <Card 
+                    elevation={0}
+                    sx={{ 
+                      borderRadius: 4, 
+                      border: '1px solid', 
+                      borderColor: 'divider',
+                      transition: 'all 0.2s',
+                      '&:hover': { transform: 'translateY(-4px)', boxShadow: '0 12px 24px rgba(0,0,0,0.05)', borderColor: 'primary.light' }
+                    }}
+                  >
+                    <CardContent sx={{ pb: 1 }}>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
+                        <Avatar sx={{ bgcolor: alpha(theme.palette.primary.main, 0.1), color: 'primary.main', width: 44, height: 44, borderRadius: 3 }}>
+                          <ExternalLink size={22} />
+                        </Avatar>
+                        <IconButton size="small" onClick={() => handleDelete(bm.id)}>
+                          <Trash2 size={16} className="text-slate-400 hover:text-red-500" />
+                        </IconButton>
                       </Box>
-                      <Typography variant="h6" className="font-bold text-slate-900 mb-1 leading-tight line-clamp-1">{b.title}</Typography>
-                      <Typography variant="body2" className="text-slate-400 font-medium truncate mb-6 flex items-center gap-1.5"><Link2 className="w-3.5 h-3.5" /> {new URL(b.url).hostname}</Typography>
-                      
-                      <Box className="flex items-center gap-4 pt-4 border-t border-slate-100">
-                        <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-slate-100 border border-slate-200">
-                           <UserIcon className="w-3 h-3 text-slate-400" />
-                           <Typography variant="caption" className="text-slate-600 font-black uppercase text-[9px] tracking-wider">{b.createdBy === currentUser?.name ? 'OWNER' : b.createdBy}</Typography>
-                        </div>
-                        <Typography variant="caption" className="text-slate-400 font-bold flex items-center gap-1"><Clock className="w-3 h-3" /> {new Date(b.createdAt).toLocaleDateString()}</Typography>
-                      </Box>
+                      <Typography variant="h6" className="font-bold line-clamp-1 mb-1" sx={{ color: 'text.primary' }}>
+                        {bm.title}
+                      </Typography>
+                      <Typography variant="body2" className="line-clamp-1 text-slate-500" sx={{ mb: 2 }}>
+                        {bm.url}
+                      </Typography>
                     </CardContent>
+                    <CardActions sx={{ p: 2, pt: 0 }}>
+                      <Button 
+                        fullWidth 
+                        variant="outlined" 
+                        size="small"
+                        href={bm.url.startsWith('http') ? bm.url : `https://${bm.url}`}
+                        target="_blank"
+                        sx={{ borderRadius: 2, fontWeight: 700 }}
+                      >
+                        Open Link
+                      </Button>
+                    </CardActions>
                   </Card>
                 </Grid>
-              ))
-            )}
-          </Grid>
+              ))}
+            </Grid>
+          )}
 
           {totalPages > 1 && (
-            <Box className="mt-12 flex justify-center items-center gap-4">
-              <Button disabled={page === 0} onClick={() => setPage(p => p - 1)} className="rounded-xl border border-slate-200 text-slate-600 px-4 lowercase font-bold hover:bg-slate-50"><ChevronLeft className="w-4 h-4 mr-2" /> prev</Button>
-              <Typography variant="body2" className="text-slate-400 font-bold">page {page + 1} of {totalPages}</Typography>
-              <Button disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)} className="rounded-xl border border-slate-200 text-slate-600 px-4 lowercase font-bold hover:bg-slate-50">next <ChevronRight className="w-4 h-4 ml-2" /></Button>
+            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 6 }}>
+              <Pagination 
+                count={totalPages} 
+                page={page + 1} 
+                onChange={(_, v) => setPage(v - 1)}
+                color="primary"
+                sx={{ '& .MuiPaginationItem-root': { fontWeight: 700 } }}
+              />
             </Box>
           )}
         </Container>
       </Box>
 
-      {isMobile && (
-        <Fab onClick={() => setOpenDialog(true)} color="primary" className="fixed bottom-6 right-6 shadow-2xl shadow-blue-600/50 bg-blue-600">
-          <Plus />
-        </Fab>
-      )}
+      <Fab
+        color="primary"
+        aria-label="add"
+        sx={{ position: 'fixed', bottom: 32, right: 32, boxShadow: '0 8px 16px rgba(37, 99, 235, 0.3)' }}
+        onClick={() => setOpenAdd(true)}
+      >
+        <Plus />
+      </Fab>
 
-      <Dialog open={openDialog} onClose={() => setOpenDialog(false)} PaperProps={{ className: 'rounded-3xl p-4', sx: { maxWidth: 450, width: '100%' } }}>
-        <DialogTitle className="font-black text-2xl flex items-center justify-between pb-2">
-          {editingId ? 'Edit Resource' : 'Archive New Link'}
-          <IconButton onClick={() => setOpenDialog(false)}><X className="w-5 h-5" /></IconButton>
-        </DialogTitle>
-        <DialogContent className="pt-2">
-          <Typography variant="body2" className="text-slate-400 font-medium mb-6">Store links securely in the community vault.</Typography>
-          <Stack spacing={3}>
-            <TextField fullWidth label="Resource Title" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} variant="outlined" />
-            <TextField fullWidth label="Target URL" value={form.url} onChange={e => setForm({ ...form, url: e.target.value })} variant="outlined" placeholder="https://..." />
-          </Stack>
-        </DialogContent>
-        <DialogActions className="p-4 pt-0">
-          <Button fullWidth onClick={handleSave} variant="contained" disabled={submitting} className="bg-blue-600 hover:bg-blue-700 py-4 rounded-xl font-bold shadow-xl shadow-blue-500/20 lowercase tracking-tight">
-             {submitting ? <CircularProgress size={24} color="inherit" /> : (editingId ? 'Save Changes' : 'Secure and Save')}
-          </Button>
-        </DialogActions>
+      <Dialog open={openAdd} onClose={() => setOpenAdd(false)} PaperProps={{ sx: { borderRadius: 4, padding: 2 } }}>
+        <DialogTitle sx={{ fontWeight: 900, pb: 0 }}>Add New Link</DialogTitle>
+        <form onSubmit={handleAdd}>
+          <DialogContent className="space-y-4">
+            <TextField
+              fullWidth
+              label="Title"
+              placeholder="e.g. Google"
+              value={newBookmark.title}
+              onChange={e => setNewBookmark({ ...newBookmark, title: e.target.value })}
+              required
+              variant="filled"
+              sx={{ '& .MuiFilledInput-root': { borderRadius: 2 } }}
+            />
+            <TextField
+              fullWidth
+              label="URL"
+              placeholder="https://google.com"
+              value={newBookmark.url}
+              onChange={e => setNewBookmark({ ...newBookmark, url: e.target.value })}
+              required
+              variant="filled"
+              sx={{ '& .MuiFilledInput-root': { borderRadius: 2 } }}
+            />
+          </DialogContent>
+          <DialogActions sx={{ p: 3, pt: 0 }}>
+            <Button onClick={() => setOpenAdd(false)} sx={{ color: 'text.secondary', fontWeight: 700 }}>Cancel</Button>
+            <Button type="submit" variant="contained" sx={{ borderRadius: 2, fontWeight: 700, px: 3 }}>Save Bookmark</Button>
+          </DialogActions>
+        </form>
       </Dialog>
     </Box>
   )
