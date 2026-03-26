@@ -27,8 +27,8 @@ API.interceptors.response.use(
 
 export const register = (data) => API.post('/register', data)
 export const login = (data) => API.post('/login', data)
-export const getBookmarks = (page = 0, size = 10, search = '') => 
-  API.get('/bookmarks', { params: { page, size, search } })
+export const getBookmarks = (page, size, search, onlyMine = false) => 
+  API.get(`/bookmarks?page=${page}&size=${size}&search=${search || ''}&onlyMine=${onlyMine}`)
 export const createBookmark = (data) => API.post('/bookmarks', data)
 export const updateBookmark = (id, data) => API.put(`/bookmarks/${id}`, data)
 export const deleteBookmark = (id) => API.delete(`/bookmarks/${id}`)

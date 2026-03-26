@@ -5,13 +5,14 @@ import {
   Card, CardContent, CardActions, Button, TextField, InputBase,
   Menu, MenuItem, Avatar, Tooltip, Fab, Dialog, DialogTitle,
   DialogContent, DialogActions, LinearProgress, Pagination, Paper,
-  useTheme, useMediaQuery, alpha, styled
+  useTheme, useMediaQuery, alpha, styled, Stack, Chip
 } from '@mui/material'
 import {
   Menu as MenuIcon, Search as SearchIcon, Plus, Bookmark,
-  LogOut, Trash2, ExternalLink, Filter, MoreVertical, LayoutGrid
+  LogOut, Trash2, ExternalLink, Filter, MoreVertical, LayoutGrid,
+  ShieldCheck, User as UserIcon, Edit2, Globe
 } from 'lucide-react'
-import { getBookmarks, createBookmark, deleteBookmark } from '../api/api'
+import { getBookmarks, createBookmark, deleteBookmark, updateBookmark } from '../api/api'
 import { getUser, clearAuth } from '../utils/auth'
 import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
@@ -20,14 +21,18 @@ const drawerWidth = 280
 
 const Search = styled('div')(({ theme }) => ({
   position: 'relative',
-  borderRadius: theme.shape.borderRadius * 2,
-  backgroundColor: alpha(theme.palette.common.white, 0.15),
+  borderRadius: theme.shape.borderRadius * 3,
+  backgroundColor: '#f1f5f9',
+  border: '1px solid transparent',
   '&:hover': {
-    backgroundColor: alpha(theme.palette.common.white, 0.25),
+    backgroundColor: '#fff',
+    border: `1px solid ${theme.palette.primary.light}`,
+    boxShadow: '0 4px 12px rgba(0,0,0,0.03)'
   },
   marginRight: theme.spacing(2),
   marginLeft: 0,
   width: '100%',
+  transition: 'all 0.2s ease',
   [theme.breakpoints.up('sm')]: {
     marginLeft: theme.spacing(3),
     width: 'auto',
@@ -46,13 +51,14 @@ const SearchIconWrapper = styled('div')(({ theme }) => ({
 
 const StyledInputBase = styled(InputBase)(({ theme }) => ({
   color: 'inherit',
+  width: '100%',
   '& .MuiInputBase-input': {
-    padding: theme.spacing(1, 1, 1, 0),
+    padding: theme.spacing(1.2, 1, 1.2, 0),
     paddingLeft: `calc(1em + ${theme.spacing(4)})`,
     transition: theme.transitions.create('width'),
     width: '100%',
     [theme.breakpoints.up('md')]: {
-      width: '40ch',
+      width: '45ch',
     },
   },
 }))
@@ -70,8 +76,11 @@ const Dashboard = () => {
   const [totalPages, setTotalPages] = useState(0)
   const [search, setSearch] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
-  const [openAdd, setOpenAdd] = useState(false)
-  const [newBookmark, setNewBookmark] = useState({ title: '', url: '' })
+  const [view, setView] = useState('all')
+  const [openModal, setOpenModal] = useState(false)
+  const [editMode, setEditMode] = useState(false)
+  const [selectedId, setSelectedId] = useState(null)
+  const [form, setForm] = useState({ title: '', url: '' })
 
   const handleDrawerToggle = () => setMobileOpen(!mobileOpen)
 
@@ -83,42 +92,60 @@ const Dashboard = () => {
   const fetchBookmarks = useCallback(async () => {
     setLoading(true)
     try {
-      const res = await getBookmarks(page, 9, debouncedSearch)
+      const res = await getBookmarks(page, 9, debouncedSearch, view === 'mine')
       setBookmarks(res.data.content)
       setTotalPages(res.data.totalPages)
     } catch (err) {
-      toast.error('Failed to load bookmarks')
+      toast.error('Session expired or error loading links')
     } finally {
       setLoading(false)
     }
-  }, [page, debouncedSearch])
+  }, [page, debouncedSearch, view])
 
   useEffect(() => {
     fetchBookmarks()
   }, [fetchBookmarks])
 
-  const handleAdd = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
     try {
-      await createBookmark(newBookmark)
-      toast.success('Bookmark added!')
-      setOpenAdd(false)
-      setNewBookmark({ title: '', url: '' })
+      if (editMode) {
+        await updateBookmark(selectedId, form)
+        toast.success('Updated!')
+      } else {
+        await createBookmark(form)
+        toast.success('Securely Saved!')
+      }
+      setOpenModal(false)
+      setForm({ title: '', url: '' })
       fetchBookmarks()
     } catch (err) {
-      toast.error('Failed to add bookmark')
+      toast.error('Permission denied or connection error')
     }
   }
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Delete this bookmark?')) return
+    if (!window.confirm('Permanently delete this secure link?')) return
     try {
       await deleteBookmark(id)
-      toast.success('Deleted')
+      toast.success('Successfully Shredded')
       fetchBookmarks()
     } catch (err) {
-      toast.error('Failed to delete')
+      toast.error('You can only delete your own links')
     }
+  }
+
+  const handleEditOpen = (bm) => {
+    setEditMode(true)
+    setSelectedId(bm.id)
+    setForm({ title: bm.title, url: bm.url })
+    setOpenModal(true)
+  }
+
+  const handleCreateOpen = () => {
+    setEditMode(false)
+    setForm({ title: '', url: '' })
+    setOpenModal(true)
   }
 
   const handleLogout = () => {
@@ -127,180 +154,139 @@ const Dashboard = () => {
   }
 
   const drawer = (
-    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', bgcolor: 'background.paper' }}>
-      <Toolbar sx={{ px: 3, display: 'flex', alignItems: 'center', gap: 2 }}>
-        <Avatar sx={{ bgcolor: 'primary.main', width: 32, height: 32 }}>
-          <Bookmark size={18} />
+    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', bgcolor: 'white' }}>
+      <Toolbar sx={{ px: 3, display: 'flex', alignItems: 'center', gap: 2, height: 80 }}>
+        <Avatar className="bg-blue-600 shadow-md">
+          <ShieldCheck size={20} />
         </Avatar>
-        <Typography variant="h6" sx={{ fontWeight: 800, letterSpacing: -0.5, color: 'text.primary' }}>
-          Bookmark
+        <Typography variant="h6" sx={{ fontWeight: 900, color: 'slate.900', letterSpacing: -0.8 }}>
+          Vaultify
         </Typography>
       </Toolbar>
-      <Divider />
-      <List sx={{ px: 2, py: 3 }}>
+      
+      <List sx={{ px: 2, py: 4, flex: 1 }}>
         <ListItem disablePadding sx={{ mb: 1 }}>
           <ListItemButton 
-            selected 
-            sx={{ 
-              borderRadius: 2,
-              '&.Mui-selected': { bgcolor: alpha(theme.palette.primary.main, 0.08), color: 'primary.main' }
-            }}
+            selected={view === 'all'} 
+            onClick={() => { setView('all'); setPage(0); }}
+            sx={{ borderRadius: 3, py: 1.5, '&.Mui-selected': { bgcolor: alpha(theme.palette.primary.main, 0.08), color: 'primary.main', '& .MuiListItemIcon-root': { color: 'primary.main' } } }}
           >
-            <ListItemIcon sx={{ color: 'inherit', minWidth: 40 }}>
-              <LayoutGrid size={20} />
-            </ListItemIcon>
-            <ListItemText primary="All Bookmarks" primaryTypographyProps={{ fontWeight: 600 }} />
+            <ListItemIcon sx={{ minWidth: 40, color: 'slate.400' }}><Globe size={20} /></ListItemIcon>
+            <ListItemText primary="Everyone's Explorer" primaryTypographyProps={{ fontWeight: 700 }} />
+          </ListItemButton>
+        </ListItem>
+
+        <ListItem disablePadding sx={{ mb: 1 }}>
+          <ListItemButton 
+            selected={view === 'mine'} 
+            onClick={() => { setView('mine'); setPage(0); }}
+            sx={{ borderRadius: 3, py: 1.5, '&.Mui-selected': { bgcolor: alpha(theme.palette.primary.main, 0.08), color: 'primary.main', '& .MuiListItemIcon-root': { color: 'primary.main' } } }}
+          >
+            <ListItemIcon sx={{ minWidth: 40, color: 'slate.400' }}><UserIcon size={20} /></ListItemIcon>
+            <ListItemText primary="My Private Vault" primaryTypographyProps={{ fontWeight: 700 }} />
           </ListItemButton>
         </ListItem>
       </List>
       
-      <Box sx={{ mt: 'auto', p: 2 }}>
-        <Paper variant="outlined" sx={{ p: 2, borderRadius: 3, bgcolor: alpha(theme.palette.primary.main, 0.02) }}>
-          <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 1 }}>Logged in as</Typography>
-          <Typography variant="body2" sx={{ fontWeight: 700, noWrap: true }}>{user?.name}</Typography>
+      <Box sx={{ p: 2, borderTop: '1px solid', borderColor: 'divider' }}>
+        <Paper elevation={0} sx={{ p: 2, borderRadius: 4, bgcolor: '#f8fafc', border: '1px solid', borderColor: 'divider' }}>
+          <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>IDENTITY CONFIRMED</Typography>
+          <Typography variant="body2" sx={{ fontWeight: 900, mt: 0.5, color: 'slate.900' }}>{user?.name}</Typography>
         </Paper>
       </Box>
     </Box>
   )
 
   return (
-    <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: '#f8fafc' }}>
-      <AppBar
-        position="fixed"
-        elevation={0}
-        sx={{
-          width: { md: `calc(100% - ${drawerWidth}px)` },
-          ml: { md: `${drawerWidth}px` },
-          bgcolor: 'white',
-          borderBottom: '1px solid',
-          borderColor: 'divider',
-          color: 'text.primary'
-        }}
-      >
-        <Toolbar sx={{ justifyContent: 'space-between' }}>
-          <IconButton
-            color="inherit"
-            edge="start"
-            onClick={handleDrawerToggle}
-            sx={{ mr: 2, display: { md: 'none' } }}
-          >
-            <MenuIcon />
-          </IconButton>
+    <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: '#f1f5f9' }}>
+      <AppBar position="fixed" elevation={0} sx={{ width: { md: `calc(100% - ${drawerWidth}px)` }, ml: { md: `${drawerWidth}px` }, bgcolor: 'white', borderBottom: '1px solid', borderColor: 'divider' }}>
+        <Toolbar sx={{ justifyContent: 'space-between', gap: 2 }}>
+          <Box className="flex items-center">
+            <IconButton color="inherit" edge="start" onClick={handleDrawerToggle} sx={{ mr: 2, display: { md: 'none' }, color: 'slate.900' }}>
+              <MenuIcon />
+            </IconButton>
+            <Typography variant="h6" sx={{ fontWeight: 800, color: 'slate.900', display: { xs: 'none', sm: 'block' } }}>
+              Secure Hub
+            </Typography>
+          </Box>
           
-          <Search sx={{ bgcolor: '#f1f5f9', border: '1px solid transparent', '&:hover': { border: '1px solid #e2e8f0' } }}>
-            <SearchIconWrapper>
-              <SearchIcon size={18} color={theme.palette.text.secondary} />
-            </SearchIconWrapper>
-            <StyledInputBase
-              placeholder="Search by title or URL..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              sx={{ color: 'text.primary' }}
-            />
+          <Search>
+            <SearchIconWrapper><SearchIcon size={18} color="#64748b" /></SearchIconWrapper>
+            <StyledInputBase placeholder="Decrypt by title or url..." value={search} onChange={(e) => setSearch(e.target.value)} sx={{ color: 'slate.900' }} />
           </Search>
 
-          <Box sx={{ display: 'flex', gap: 1 }}>
-            <Tooltip title="Logout">
-              <IconButton onClick={handleLogout} sx={{ color: 'text.secondary' }}>
-                <LogOut size={20} />
-              </IconButton>
-            </Tooltip>
-          </Box>
+          <Tooltip title="Secure Logout">
+            <IconButton onClick={handleLogout} sx={{ bgcolor: '#fee2e2', color: '#ef4444', borderRadius: 2, '&:hover': { bgcolor: '#fecaca' } }}>
+              <LogOut size={18} />
+            </IconButton>
+          </Tooltip>
         </Toolbar>
-        {loading && <LinearProgress sx={{ position: 'absolute', bottom: 0, left: 0, right: 0 }} />}
+        {loading && <LinearProgress sx={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 3 }} />}
       </AppBar>
 
-      <Box
-        component="nav"
-        sx={{ width: { md: drawerWidth }, flexShrink: { md: 0 } }}
-      >
-        <Drawer
-          variant="temporary"
-          open={mobileOpen}
-          onClose={handleDrawerToggle}
-          ModalProps={{ keepMounted: true }}
-          sx={{
-            display: { xs: 'block', md: 'none' },
-            '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth, borderRight: 'none', boxShadow: 10 },
-          }}
-        >
-          {drawer}
-        </Drawer>
-        <Drawer
-          variant="permanent"
-          sx={{
-            display: { xs: 'none', md: 'block' },
-            '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth, borderRight: '1px solid', borderColor: 'divider' },
-          }}
-          open
-        >
-          {drawer}
-        </Drawer>
+      <Box component="nav" sx={{ width: { md: drawerWidth }, flexShrink: { md: 0 } }}>
+        <Drawer variant="temporary" open={mobileOpen} onClose={handleDrawerToggle} ModalProps={{ keepMounted: true }} sx={{ display: { xs: 'block', md: 'none' }, '& .MuiDrawer-paper': { width: drawerWidth, border: 'none', boxShadow: 24 } }}>{drawer}</Drawer>
+        <Drawer variant="permanent" sx={{ display: { xs: 'none', md: 'block' }, '& .MuiDrawer-paper': { width: drawerWidth, borderRight: '1px solid', borderColor: 'divider' } }} open>{drawer}</Drawer>
       </Box>
 
-      <Box
-        component="main"
-        sx={{ flexGrow: 1, p: 4, width: { md: `calc(100% - ${drawerWidth}px)` }, mt: 8 }}
-      >
-        <Container maxWidth="lg">
-          <Box className="flex justify-between items-end mb-8">
-            <Box>
-              <Typography variant="h4" sx={{ fontWeight: 900, color: 'text.primary', letterSpacing: -1 }}>
-                My Collection
-              </Typography>
-              <Typography variant="subtitle1" sx={{ color: 'text.secondary' }}>
-                Keep your digital worlds organized
-              </Typography>
-            </Box>
+      <Box component="main" sx={{ flexGrow: 1, p: { xs: 2.5, sm: 4, md: 6 }, width: { md: `calc(100% - ${drawerWidth}px)` }, mt: 10 }}>
+        <Container maxWidth="xl">
+          <Box sx={{ mb: 6 }}>
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ sm: 'center' }} justifyContent="space-between">
+              <Box>
+                <Typography variant="h3" sx={{ fontWeight: 900, color: 'slate.900', letterSpacing: -1.5 }}>
+                  {view === 'mine' ? 'My Secret Collection' : 'Global Explorer'}
+                </Typography>
+                <Typography variant="subtitle1" sx={{ color: 'slate.500', fontWeight: 500 }}>
+                  Showing {bookmarks.length} encrypted entries
+                </Typography>
+              </Box>
+            </Stack>
           </Box>
 
-          {bookmarks.length === 0 && !loading ? (
-            <Paper variant="outlined" sx={{ p: 8, textAlign: 'center', borderRadius: 5, borderStyle: 'dashed' }}>
-              <Bookmark size={48} className="mx-auto mb-4 text-slate-300" />
-              <Typography variant="h6" sx={{ color: 'text.secondary', fontWeight: 700 }}>No bookmarks found</Typography>
-              <Button onClick={() => setOpenAdd(true)} variant="contained" sx={{ mt: 2, borderRadius: 2 }}>Add your first one</Button>
+          {!loading && bookmarks.length === 0 ? (
+            <Paper elevation={0} sx={{ p: 10, textAlign: 'center', borderRadius: 6, border: '2px dashed', borderColor: 'slate.200', bgcolor: 'transparent' }}>
+              <ShieldCheck size={64} className="mx-auto mb-5 text-slate-300" />
+              <Typography variant="h5" sx={{ fontWeight: 800, color: 'slate.400' }}>Access Clear - No Entries Found</Typography>
+              <Button onClick={handleCreateOpen} variant="contained" sx={{ mt: 3, px: 4, py: 1.5, borderRadius: 3, fontWeight: 900 }}>Create First Record</Button>
             </Paper>
           ) : (
-            <Grid container spacing={3}>
+            <Grid container spacing={{ xs: 2, sm: 3, xl: 4 }}>
               {bookmarks.map((bm) => (
                 <Grid item xs={12} sm={6} lg={4} key={bm.id}>
-                  <Card 
-                    elevation={0}
-                    sx={{ 
-                      borderRadius: 4, 
-                      border: '1px solid', 
-                      borderColor: 'divider',
-                      transition: 'all 0.2s',
-                      '&:hover': { transform: 'translateY(-4px)', boxShadow: '0 12px 24px rgba(0,0,0,0.05)', borderColor: 'primary.light' }
-                    }}
-                  >
-                    <CardContent sx={{ pb: 1 }}>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
-                        <Avatar sx={{ bgcolor: alpha(theme.palette.primary.main, 0.1), color: 'primary.main', width: 44, height: 44, borderRadius: 3 }}>
-                          <ExternalLink size={22} />
+                  <Card elevation={0} sx={{ borderRadius: 6, border: '1px solid', borderColor: 'white', bgcolor: 'white', transition: '0.3s cubic-bezier(0.4, 0, 0.2, 1)', '&:hover': { transform: 'scale(1.02)', boxShadow: '0 20px 40px rgba(0,0,0,0.05)', borderColor: 'blue.100' } }}>
+                    <CardContent sx={{ p: 4 }}>
+                      <Stack direction="row" spacing={2} sx={{ mb: 3 }}>
+                        <Avatar sx={{ bgcolor: alpha(theme.palette.primary.main, 0.1), color: 'primary.main', borderRadius: 3.5, width: 52, height: 52 }}>
+                          <ExternalLink size={24} />
                         </Avatar>
-                        <IconButton size="small" onClick={() => handleDelete(bm.id)}>
-                          <Trash2 size={16} className="text-slate-400 hover:text-red-500" />
-                        </IconButton>
-                      </Box>
-                      <Typography variant="h6" className="font-bold line-clamp-1 mb-1" sx={{ color: 'text.primary' }}>
-                        {bm.title}
-                      </Typography>
-                      <Typography variant="body2" className="line-clamp-1 text-slate-500" sx={{ mb: 2 }}>
-                        {bm.url}
-                      </Typography>
+                        <Box sx={{ flex: 1, minWidth: 0 }}>
+                          <Typography variant="h6" sx={{ fontWeight: 900, noWrap: true, color: 'slate.900' }}>{bm.title}</Typography>
+                          <Typography variant="caption" sx={{ color: 'slate.400', fontWeight: 600, noWrap: true, display: 'block' }}>{bm.url}</Typography>
+                        </Box>
+                      </Stack>
+                      
+                      <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
+                        <Chip label={bm.createdBy} size="small" icon={<UserIcon size={12} />} sx={{ borderRadius: 1.5, fontWeight: 700, bgcolor: '#f1f5f9', fontSize: '0.65rem' }} />
+                        {user?.userId === bm.userId && <Chip label="OWNER" color="success" size="small" sx={{ borderRadius: 1.5, fontWeight: 900, fontSize: '0.6rem' }} />}
+                      </Stack>
                     </CardContent>
-                    <CardActions sx={{ p: 2, pt: 0 }}>
-                      <Button 
-                        fullWidth 
-                        variant="outlined" 
-                        size="small"
-                        href={bm.url.startsWith('http') ? bm.url : `https://${bm.url}`}
-                        target="_blank"
-                        sx={{ borderRadius: 2, fontWeight: 700 }}
-                      >
-                        Open Link
-                      </Button>
+                    
+                    <Divider sx={{ opacity: 0.5 }} />
+                    
+                    <CardActions sx={{ p: 3, gap: 1 }}>
+                      <Button fullWidth variant="contained" disableElevation href={bm.url.startsWith('http') ? bm.url : `https://${bm.url}`} target="_blank" sx={{ borderRadius: 3, fontWeight: 800, py: 1.2 }}>Explore</Button>
+                      
+                      {user?.userId === bm.userId && (
+                        <>
+                          <Tooltip title="Alter Record">
+                            <IconButton onClick={() => handleEditOpen(bm)} sx={{ bgcolor: '#f1f5f9', borderRadius: 3, p: 1.2, color: 'slate.600' }}><Edit2 size={16} /></IconButton>
+                          </Tooltip>
+                          <Tooltip title="Shred Record">
+                            <IconButton onClick={() => handleDelete(bm.id)} sx={{ bgcolor: '#fff1f2', borderRadius: 3, p: 1.2, color: '#e11d48' }}><Trash2 size={16} /></IconButton>
+                          </Tooltip>
+                        </>
+                      )}
                     </CardActions>
                   </Card>
                 </Grid>
@@ -309,56 +295,27 @@ const Dashboard = () => {
           )}
 
           {totalPages > 1 && (
-            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 6 }}>
-              <Pagination 
-                count={totalPages} 
-                page={page + 1} 
-                onChange={(_, v) => setPage(v - 1)}
-                color="primary"
-                sx={{ '& .MuiPaginationItem-root': { fontWeight: 700 } }}
-              />
+            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 8 }}>
+              <Pagination count={totalPages} page={page + 1} onChange={(_, v) => setPage(v - 1)} shape="rounded" size="large" sx={{ '& .MuiPaginationItem-root': { fontWeight: 900, borderRadius: 2 } }} />
             </Box>
           )}
         </Container>
       </Box>
 
-      <Fab
-        color="primary"
-        aria-label="add"
-        sx={{ position: 'fixed', bottom: 32, right: 32, boxShadow: '0 8px 16px rgba(37, 99, 235, 0.3)' }}
-        onClick={() => setOpenAdd(true)}
-      >
-        <Plus />
+      <Fab color="primary" onClick={handleCreateOpen} sx={{ position: 'fixed', bottom: { xs: 24, sm: 40 }, right: { xs: 24, sm: 40 }, width: 64, height: 64, boxShadow: '0 20px 40px rgba(37, 99, 235, 0.4)', borderRadius: 4 }}>
+        <Plus size={32} />
       </Fab>
 
-      <Dialog open={openAdd} onClose={() => setOpenAdd(false)} PaperProps={{ sx: { borderRadius: 4, padding: 2 } }}>
-        <DialogTitle sx={{ fontWeight: 900, pb: 0 }}>Add New Link</DialogTitle>
-        <form onSubmit={handleAdd}>
-          <DialogContent className="space-y-4">
-            <TextField
-              fullWidth
-              label="Title"
-              placeholder="e.g. Google"
-              value={newBookmark.title}
-              onChange={e => setNewBookmark({ ...newBookmark, title: e.target.value })}
-              required
-              variant="filled"
-              sx={{ '& .MuiFilledInput-root': { borderRadius: 2 } }}
-            />
-            <TextField
-              fullWidth
-              label="URL"
-              placeholder="https://google.com"
-              value={newBookmark.url}
-              onChange={e => setNewBookmark({ ...newBookmark, url: e.target.value })}
-              required
-              variant="filled"
-              sx={{ '& .MuiFilledInput-root': { borderRadius: 2 } }}
-            />
+      <Dialog open={openModal} onClose={() => setOpenModal(false)} fullWidth maxWidth="xs" PaperProps={{ sx: { borderRadius: 6, p: 2 } }}>
+        <DialogTitle sx={{ fontWeight: 900, fontSize: '1.5rem', pb: 1 }}>{editMode ? 'Alter Link' : 'New Secure Entry'}</DialogTitle>
+        <form onSubmit={handleSubmit}>
+          <DialogContent sx={{ pt: 1 }} className="space-y-4">
+            <TextField fullWidth label="Designation Title" placeholder="Safe Vault A" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} required sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }} />
+            <TextField fullWidth label="Digital Address" placeholder="vault-a.com" value={form.url} onChange={e => setForm({ ...form, url: e.target.value })} required sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }} />
           </DialogContent>
-          <DialogActions sx={{ p: 3, pt: 0 }}>
-            <Button onClick={() => setOpenAdd(false)} sx={{ color: 'text.secondary', fontWeight: 700 }}>Cancel</Button>
-            <Button type="submit" variant="contained" sx={{ borderRadius: 2, fontWeight: 700, px: 3 }}>Save Bookmark</Button>
+          <DialogActions sx={{ p: 3, pt: 1 }}>
+            <Button onClick={() => setOpenModal(false)} sx={{ fontWeight: 800, color: 'slate.400' }}>Abort</Button>
+            <Button type="submit" variant="contained" sx={{ px: 4, py: 1.2, borderRadius: 3, fontWeight: 900 }}>{editMode ? 'Confirm Alteration' : 'Securely Save'}</Button>
           </DialogActions>
         </form>
       </Dialog>
