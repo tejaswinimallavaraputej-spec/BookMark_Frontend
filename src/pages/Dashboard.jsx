@@ -232,10 +232,10 @@ const Dashboard = () => {
           <Box sx={{ mb: 6 }}>
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ sm: 'center' }} justifyContent="space-between">
               <Box>
-                <Typography variant="h3" sx={{ fontWeight: 900, color: 'slate.900', letterSpacing: -1.5 }}>
-                  {view === 'mine' ? 'My Secret Collection' : 'Global Explorer'}
+                <Typography variant="h3" sx={{ fontWeight: 900, color: '#0f172a', letterSpacing: -1.5 }}>
+                  {view === 'mine' ? 'My Collection' : 'BookMark Collection'}
                 </Typography>
-                <Typography variant="subtitle1" sx={{ color: 'slate.500', fontWeight: 500 }}>
+                <Typography variant="subtitle1" sx={{ color: '#64748b', fontWeight: 500 }}>
                   Showing {bookmarks.length} encrypted entries
                 </Typography>
               </Box>
