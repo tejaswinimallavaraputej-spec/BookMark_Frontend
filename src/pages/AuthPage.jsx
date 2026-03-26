@@ -60,7 +60,7 @@ const AuthPage = () => {
                 Vaultify
               </Typography>
               <Typography variant="body2" className="text-slate-500 font-bold uppercase tracking-widest text-[10px]">
-                Secure Digital Repository
+                Global Secure Hub
               </Typography>
             </Box>
 
