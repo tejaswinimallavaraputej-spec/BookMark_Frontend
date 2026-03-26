@@ -1,7 +1,7 @@
 import axios from 'axios'
 
 const API = axios.create({
-  baseURL: 'http://localhost:9090',
+  baseURL: import.meta.env.VITE_API_BASE_URL || 'https://bookmark-backend-teja1.onrender.com',
   timeout: 10000,
 })
 
