@@ -24,7 +24,8 @@ const AuthPage = () => {
     setLoading(true)
     try {
       const res = tab === 0 ? await login(form) : await register(form)
-      setAuth(res.data.token, res.data.user)
+      const { token, ...user } = res.data
+      setAuth(token, user)
       toast.success(tab === 0 ? 'Welcome back!' : 'Account created!')
       navigate('/')
     } catch (err) {
