@@ -126,22 +126,6 @@ const AuthPage = () => {
                 {loading ? <CircularProgress size={24} color="inherit" /> : (tab === 0 ? 'Sign In' : 'Create Account')}
               </Button>
             </form>
-
-            <Box className="mt-8">
-              <div className="relative flex py-5 items-center">
-                <div className="flex-grow border-t border-slate-100"></div>
-                <span className="flex-shrink mx-4 text-slate-400 text-xs font-bold uppercase tracking-widest">Or continue with</span>
-                <div className="flex-grow border-t border-slate-100"></div>
-              </div>
-
-              <div className="flex gap-4">
-                {[Chrome, Github, Twitter].map((Icon, idx) => (
-                  <IconButton key={idx} className="flex-1 border border-slate-100 rounded-xl py-3 hover:bg-slate-50 transition-colors">
-                    <Icon className="w-5 h-5 text-slate-600" />
-                  </IconButton>
-                ))}
-              </div>
-            </Box>
           </Paper>
         </Fade>
       </Container>
