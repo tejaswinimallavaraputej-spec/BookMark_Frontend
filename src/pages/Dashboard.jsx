@@ -23,14 +23,12 @@ const Search = styled('div')(({ theme }) => ({
   position: 'relative',
   borderRadius: theme.shape.borderRadius * 3,
   backgroundColor: '#f1f5f9',
-  border: '1px solid transparent',
+  border: '1px solid #e2e8f0',
   '&:hover': {
     backgroundColor: '#fff',
-    border: `1px solid ${theme.palette.primary.light}`,
-    boxShadow: '0 4px 12px rgba(0,0,0,0.03)'
+    borderColor: theme.palette.primary.main,
   },
   marginRight: theme.spacing(2),
-  marginLeft: 0,
   width: '100%',
   transition: 'all 0.2s ease',
   [theme.breakpoints.up('sm')]: {
@@ -50,13 +48,14 @@ const SearchIconWrapper = styled('div')(({ theme }) => ({
 }))
 
 const StyledInputBase = styled(InputBase)(({ theme }) => ({
-  color: 'inherit',
+  color: '#0f172a',
   width: '100%',
   '& .MuiInputBase-input': {
     padding: theme.spacing(1.2, 1, 1.2, 0),
     paddingLeft: `calc(1em + ${theme.spacing(4)})`,
     transition: theme.transitions.create('width'),
     width: '100%',
+    fontWeight: 600,
     [theme.breakpoints.up('md')]: {
       width: '45ch',
     },
@@ -114,7 +113,7 @@ const Dashboard = () => {
         toast.success('Updated!')
       } else {
         await createBookmark(form)
-        toast.success('Securely Saved!')
+        toast.success('Successfully Saved!')
       }
       setOpenModal(false)
       setForm({ title: '', url: '' })
@@ -125,10 +124,10 @@ const Dashboard = () => {
   }
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Permanently delete this secure link?')) return
+    if (!window.confirm('Delete this record?')) return
     try {
       await deleteBookmark(id)
-      toast.success('Successfully Shredded')
+      toast.success('Removed')
       fetchBookmarks()
     } catch (err) {
       toast.error('You can only delete your own links')
@@ -156,11 +155,11 @@ const Dashboard = () => {
   const drawer = (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', bgcolor: 'white' }}>
       <Toolbar sx={{ px: 3, display: 'flex', alignItems: 'center', gap: 2, height: 80 }}>
-        <Avatar className="bg-blue-600 shadow-md">
-          <ShieldCheck size={20} />
+        <Avatar sx={{ bgcolor: theme.palette.primary.main, width: 40, height: 40 }}>
+          <Bookmark size={22} />
         </Avatar>
-        <Typography variant="h6" sx={{ fontWeight: 900, color: 'slate.900', letterSpacing: -0.8 }}>
-          Vaultify
+        <Typography variant="h6" sx={{ fontWeight: 900, color: '#0f172a', letterSpacing: -1 }}>
+          BookMark
         </Typography>
       </Toolbar>
       
@@ -171,8 +170,8 @@ const Dashboard = () => {
             onClick={() => { setView('all'); setPage(0); }}
             sx={{ borderRadius: 3, py: 1.5, '&.Mui-selected': { bgcolor: alpha(theme.palette.primary.main, 0.08), color: 'primary.main', '& .MuiListItemIcon-root': { color: 'primary.main' } } }}
           >
-            <ListItemIcon sx={{ minWidth: 40, color: 'slate.400' }}><Globe size={20} /></ListItemIcon>
-            <ListItemText primary="Everyone's Explorer" primaryTypographyProps={{ fontWeight: 700 }} />
+            <ListItemIcon sx={{ minWidth: 40, color: '#94a3b8' }}><Globe size={20} /></ListItemIcon>
+            <ListItemText primary="All Collection" primaryTypographyProps={{ fontWeight: 700 }} />
           </ListItemButton>
         </ListItem>
 
@@ -182,8 +181,8 @@ const Dashboard = () => {
             onClick={() => { setView('mine'); setPage(0); }}
             sx={{ borderRadius: 3, py: 1.5, '&.Mui-selected': { bgcolor: alpha(theme.palette.primary.main, 0.08), color: 'primary.main', '& .MuiListItemIcon-root': { color: 'primary.main' } } }}
           >
-            <ListItemIcon sx={{ minWidth: 40, color: 'slate.400' }}><UserIcon size={20} /></ListItemIcon>
-            <ListItemText primary="My Private Vault" primaryTypographyProps={{ fontWeight: 700 }} />
+            <ListItemIcon sx={{ minWidth: 40, color: '#94a3b8' }}><UserIcon size={20} /></ListItemIcon>
+            <ListItemText primary="My Vault" primaryTypographyProps={{ fontWeight: 700 }} />
           </ListItemButton>
         </ListItem>
       </List>
@@ -191,7 +190,7 @@ const Dashboard = () => {
       <Box sx={{ p: 2, borderTop: '1px solid', borderColor: 'divider' }}>
         <Paper elevation={0} sx={{ p: 2, borderRadius: 4, bgcolor: '#f8fafc', border: '1px solid', borderColor: 'divider' }}>
           <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>IDENTITY CONFIRMED</Typography>
-          <Typography variant="body2" sx={{ fontWeight: 900, mt: 0.5, color: 'slate.900' }}>{user?.name}</Typography>
+          <Typography variant="body2" sx={{ fontWeight: 900, mt: 0.5 }}>{user?.name}</Typography>
         </Paper>
       </Box>
     </Box>
@@ -202,17 +201,16 @@ const Dashboard = () => {
       <AppBar position="fixed" elevation={0} sx={{ width: { md: `calc(100% - ${drawerWidth}px)` }, ml: { md: `${drawerWidth}px` }, bgcolor: 'white', borderBottom: '1px solid', borderColor: 'divider' }}>
         <Toolbar sx={{ justifyContent: 'space-between', gap: 2 }}>
           <Box className="flex items-center">
-            <IconButton color="inherit" edge="start" onClick={handleDrawerToggle} sx={{ mr: 2, display: { md: 'none' }, color: 'slate.900' }}>
+            <IconButton color="inherit" edge="start" onClick={handleDrawerToggle} sx={{ mr: 2, display: { md: 'none' }, color: '#0f172a' }}>
               <MenuIcon />
             </IconButton>
-            <Typography variant="h6" sx={{ fontWeight: 800, color: 'slate.900', display: { xs: 'none', sm: 'block' } }}>
-              Secure Hub
+            <Typography variant="h6" sx={{ fontWeight: 800, color: '#0f172a', display: { xs: 'none', sm: 'block' } }}>
+              Digital Collection
             </Typography>
           </Box>
           
           <Search>
-            <SearchIconWrapper><SearchIcon size={18} color="#64748b" /></SearchIconWrapper>
-            <StyledInputBase placeholder="Decrypt by title or url..." value={search} onChange={(e) => setSearch(e.target.value)} sx={{ color: 'slate.900' }} />
+            <StyledInputBase placeholder="Search titles or urls..." value={search} onChange={(e) => setSearch(e.target.value)} />
           </Search>
 
           <Tooltip title="Secure Logout">
@@ -254,7 +252,15 @@ const Dashboard = () => {
             <Grid container spacing={{ xs: 2, sm: 3, xl: 4 }}>
               {bookmarks.map((bm) => (
                 <Grid item xs={12} sm={6} lg={4} key={bm.id}>
-                  <Card elevation={0} sx={{ borderRadius: 6, border: '1px solid', borderColor: 'white', bgcolor: 'white', transition: '0.3s cubic-bezier(0.4, 0, 0.2, 1)', '&:hover': { transform: 'scale(1.02)', boxShadow: '0 20px 40px rgba(0,0,0,0.05)', borderColor: 'blue.100' } }}>
+                  <Card elevation={0} sx={{ 
+                    borderRadius: 6, 
+                    border: '1px solid', 
+                    borderColor: 'white', 
+                    bgcolor: 'white', 
+                    cursor: 'pointer',
+                    transition: '0.3s cubic-bezier(0.4, 0, 0.2, 1)', 
+                    '&:hover': { transform: 'scale(1.02)', boxShadow: '0 20px 40px rgba(0,0,0,0.05)', borderColor: 'blue.100' } 
+                  }}>
                     <CardContent sx={{ p: 4 }}>
                       <Stack direction="row" spacing={2} sx={{ mb: 3 }}>
                         <Avatar sx={{ bgcolor: alpha(theme.palette.primary.main, 0.1), color: 'primary.main', borderRadius: 3.5, width: 52, height: 52 }}>
