@@ -57,10 +57,10 @@ const AuthPage = () => {
                 <Bookmark className="w-7 h-7 text-white" />
               </Avatar>
               <Typography variant="h4" className="font-black text-slate-900 tracking-tight">
-                Vaultify
+                BookMark
               </Typography>
               <Typography variant="body2" className="text-slate-500 font-bold uppercase tracking-widest text-[10px]">
-                Global Secure Hub
+                Digital Collection Hub
               </Typography>
             </Box>
 
