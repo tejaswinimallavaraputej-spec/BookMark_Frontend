@@ -5,7 +5,6 @@ const API = axios.create({
   timeout: 10000,
 })
 
-// Attach JWT token to every request
 API.interceptors.request.use((config) => {
   const token = localStorage.getItem('bm_token')
   if (token) {
@@ -14,7 +13,6 @@ API.interceptors.request.use((config) => {
   return config
 })
 
-// Handle auth errors globally
 API.interceptors.response.use(
   (response) => response,
   (error) => {

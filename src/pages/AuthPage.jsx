@@ -1,57 +1,33 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Bookmark, Mail, Lock, User as UserIcon, ArrowRight, Loader2 } from 'lucide-react'
+import {
+  Container, Box, Paper, Typography, TextField, Button,
+  IconButton, InputAdornment, Tab, Tabs, Avatar, Fade,
+  CircularProgress
+} from '@mui/material'
+import {
+  LockOutlined, Mail, User, Eye, EyeOff, Bookmark,
+  Github, Twitter, Chrome
+} from 'lucide-react'
 import { login, register } from '../api/api'
-import { saveAuth, isAuthenticated } from '../utils/auth'
+import { setAuth } from '../utils/auth'
 import toast from 'react-hot-toast'
 
 const AuthPage = () => {
   const navigate = useNavigate()
-  const [isLogin, setIsLogin] = useState(true)
+  const [tab, setTab] = useState(0)
   const [loading, setLoading] = useState(false)
-  const [form, setForm] = useState({
-    name: '',
-    email: '',
-    password: ''
-  })
-  const [errors, setErrors] = useState({})
-
-  useEffect(() => {
-    if (isAuthenticated()) {
-      navigate('/dashboard')
-    }
-  }, [navigate])
-
-  const validate = () => {
-    const errs = {}
-    if (!isLogin && !form.name.trim()) errs.name = 'Name is required'
-    if (!form.email.trim()) errs.email = 'Email is required'
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) errs.email = 'Invalid email'
-    if (!form.password) errs.password = 'Password is required'
-    else if (form.password.length < 6) errs.password = 'Min 6 characters'
-    return errs
-  }
+  const [showPassword, setShowPassword] = useState(false)
+  const [form, setForm] = useState({ name: '', email: '', password: '' })
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    const errs = validate()
-    setErrors(errs)
-    if (Object.keys(errs).length > 0) return
-
     setLoading(true)
     try {
-      let res;
-      if (isLogin) {
-        res = await login({ email: form.email, password: form.password })
-        toast.success(`Welcome back, ${res.data.name}!`)
-      } else {
-        res = await register(form)
-        toast.success('Registration successful!')
-      }
-      
-      const { token, name, email, userId } = res.data
-      saveAuth(token, { name, email, userId })
-      navigate('/dashboard')
+      const res = tab === 0 ? await login(form) : await register(form)
+      setAuth(res.data.token, res.data.user)
+      toast.success(tab === 0 ? 'Welcome back!' : 'Account created!')
+      navigate('/')
     } catch (err) {
       toast.error(err.response?.data?.error || 'Authentication failed')
     } finally {
@@ -59,128 +35,117 @@ const AuthPage = () => {
     }
   }
 
-  const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value })
-    setErrors({ ...errors, [e.target.name]: '' })
-  }
-
-  const toggleMode = () => {
-    setIsLogin(!isLogin)
-    setErrors({})
-    setForm({ name: '', email: '', password: '' })
-  }
-
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="flex justify-center">
-          <div className="w-12 h-12 rounded-xl bg-blue-600 flex items-center justify-center shadow-sm">
-            <Bookmark className="w-6 h-6 text-white" />
-          </div>
-        </div>
-        <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-          {isLogin ? 'Sign in to your account' : 'Create a new account'}
-        </h2>
-        <p className="mt-2 text-center text-sm text-gray-600">
-          Management System for your daily bookmarks
-        </p>
-      </div>
+    <Box className="min-h-screen relative overflow-hidden bg-slate-900 flex items-center justify-center p-4">
+      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-600/20 blur-[120px] rounded-full animate-pulse" />
+      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-indigo-600/20 blur-[120px] rounded-full animate-pulse delay-1000" />
 
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md shadow-sm">
-        <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10 border border-gray-200">
-          <form className="space-y-6" onSubmit={handleSubmit}>
-            {!isLogin && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Full Name</label>
-                <div className="mt-1 relative rounded-md shadow-sm">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <UserIcon className="h-5 w-5 text-gray-400" />
-                  </div>
-                  <input
-                    name="name"
-                    type="text"
-                    value={form.name}
-                    onChange={handleChange}
-                    className={`block w-full pl-10 sm:text-sm border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 input-field text-gray-900 bg-white border ${errors.name ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : ''}`}
-                    placeholder="John Doe"
-                  />
-                </div>
-                {errors.name && <p className="mt-2 text-sm text-red-600">{errors.name}</p>}
-              </div>
-            )}
+      <Container maxWidth="xs" className="relative z-10">
+        <Fade in={true} timeout={800}>
+          <Paper elevation={24} className="p-8 rounded-3xl bg-white/95 backdrop-blur-xl border border-white/20 shadow-2xl">
+            <Box className="flex flex-col items-center mb-8">
+              <Avatar className="bg-blue-600 w-14 h-14 mb-4 shadow-lg shadow-blue-500/30">
+                <Bookmark className="w-7 h-7 text-white" />
+              </Avatar>
+              <Typography variant="h4" className="font-black text-slate-900 tracking-tight">
+                Vaultify
+              </Typography>
+              <Typography variant="body2" className="text-slate-500 font-medium">
+                Your digital bookmarks, secured.
+              </Typography>
+            </Box>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Email address</label>
-              <div className="mt-1 relative rounded-md shadow-sm">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Mail className="h-5 w-5 text-gray-400" />
-                </div>
-                <input
-                  name="email"
-                  type="email"
-                  value={form.email}
-                  onChange={handleChange}
-                  className={`block w-full pl-10 sm:text-sm border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 input-field text-gray-900 bg-white border ${errors.email ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : ''}`}
-                  placeholder="john@example.com"
+            <Tabs
+              value={tab}
+              onChange={(_, v) => setTab(v)}
+              variant="fullWidth"
+              className="mb-8 border-b border-slate-100"
+              sx={{ '& .MuiTabs-indicator': { height: 3, borderRadius: '3px 3px 0 0' } }}
+            >
+              <Tab label="Login" className="font-bold lowercase py-4" />
+              <Tab label="Register" className="font-bold lowercase py-4" />
+            </Tabs>
+
+            <form onSubmit={handleSubmit} className="space-y-5">
+              {tab === 1 && (
+                <TextField
+                  fullWidth
+                  label="Full Name"
+                  placeholder="John Doe"
+                  value={form.name}
+                  onChange={e => setForm({ ...form, name: e.target.value })}
+                  InputProps={{
+                    startAdornment: <InputAdornment position="start"><User className="w-4 h-4 text-slate-400" /></InputAdornment>,
+                  }}
+                  variant="outlined"
+                  required
                 />
-              </div>
-              {errors.email && <p className="mt-2 text-sm text-red-600">{errors.email}</p>}
-            </div>
+              )}
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Password</label>
-              <div className="mt-1 relative rounded-md shadow-sm">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Lock className="h-5 w-5 text-gray-400" />
-                </div>
-                <input
-                  name="password"
-                  type="password"
-                  value={form.password}
-                  onChange={handleChange}
-                  className={`block w-full pl-10 sm:text-sm border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 input-field text-gray-900 bg-white border ${errors.password ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : ''}`}
-                  placeholder="••••••••"
-                />
-              </div>
-              {errors.password && <p className="mt-2 text-sm text-red-600">{errors.password}</p>}
-            </div>
+              <TextField
+                fullWidth
+                label="Email Address"
+                placeholder="name@example.com"
+                type="email"
+                value={form.email}
+                onChange={e => setForm({ ...form, email: e.target.value })}
+                InputProps={{
+                  startAdornment: <InputAdornment position="start"><Mail className="w-4 h-4 text-slate-400" /></InputAdornment>,
+                }}
+                variant="outlined"
+                required
+              />
 
-            <div>
-              <button
+              <TextField
+                fullWidth
+                label="Password"
+                type={showPassword ? 'text' : 'password'}
+                value={form.password}
+                onChange={e => setForm({ ...form, password: e.target.value })}
+                InputProps={{
+                  startAdornment: <InputAdornment position="start"><LockOutlined className="w-4 h-4 text-slate-400" /></InputAdornment>,
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton onClick={() => setShowPassword(!showPassword)} edge="end">
+                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                }}
+                variant="outlined"
+                required
+              />
+
+              <Button
+                fullWidth
                 type="submit"
+                variant="contained"
                 disabled={loading}
-                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 transition-colors"
+                className="py-4 rounded-xl font-bold bg-blue-600 hover:bg-blue-700 shadow-xl shadow-blue-500/20 transform active:scale-95 transition-all mt-4"
               >
-                {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : isLogin ? 'Sign In' : 'Create Account'}
-              </button>
-            </div>
-          </form>
+                {loading ? <CircularProgress size={24} color="inherit" /> : (tab === 0 ? 'Sign In' : 'Create Account')}
+              </Button>
+            </form>
 
-          <div className="mt-6">
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-300" />
+            <Box className="mt-8">
+              <div className="relative flex py-5 items-center">
+                <div className="flex-grow border-t border-slate-100"></div>
+                <span className="flex-shrink mx-4 text-slate-400 text-xs font-bold uppercase tracking-widest">Or continue with</span>
+                <div className="flex-grow border-t border-slate-100"></div>
               </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-gray-500">
-                  {isLogin ? 'New to BookmarkVault?' : 'Already have an account?'}
-                </span>
-              </div>
-            </div>
 
-            <div className="mt-6">
-              <button
-                onClick={toggleMode}
-                className="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
-              >
-                {isLogin ? 'Create a new account' : 'Sign in to your account'}
-                <ArrowRight className="ml-2 w-4 h-4 text-gray-400" />
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+              <div className="flex gap-4">
+                {[Chrome, Github, Twitter].map((Icon, idx) => (
+                  <IconButton key={idx} className="flex-1 border border-slate-100 rounded-xl py-3 hover:bg-slate-50 transition-colors">
+                    <Icon className="w-5 h-5 text-slate-600" />
+                  </IconButton>
+                ))}
+              </div>
+            </Box>
+          </Paper>
+        </Fade>
+      </Container>
+    </Box>
   )
 }
 
