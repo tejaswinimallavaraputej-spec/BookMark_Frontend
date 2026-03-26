@@ -6,7 +6,7 @@ import {
   CircularProgress
 } from '@mui/material'
 import {
-  LockOutlined, Mail, User, Eye, EyeOff, Bookmark,
+  Lock, Mail, User, Eye, EyeOff, Bookmark,
   Github, Twitter, Chrome
 } from 'lucide-react'
 import { login, register } from '../api/api'
@@ -103,7 +103,7 @@ const AuthPage = () => {
                 value={form.password}
                 onChange={e => setForm({ ...form, password: e.target.value })}
                 InputProps={{
-                  startAdornment: <InputAdornment position="start"><LockOutlined className="w-4 h-4 text-slate-400" /></InputAdornment>,
+                  startAdornment: <InputAdornment position="start"><Lock className="w-4 h-4 text-slate-400" /></InputAdornment>,
                   endAdornment: (
                     <InputAdornment position="end">
                       <IconButton onClick={() => setShowPassword(!showPassword)} edge="end">
