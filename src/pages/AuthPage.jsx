@@ -36,21 +36,30 @@ const AuthPage = () => {
   }
 
   return (
-    <Box className="min-h-screen relative overflow-hidden bg-slate-900 flex items-center justify-center p-4">
-      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-600/20 blur-[120px] rounded-full animate-pulse" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-indigo-600/20 blur-[120px] rounded-full animate-pulse delay-1000" />
-
+    <Box 
+      className="min-h-screen flex items-center justify-center p-4"
+      sx={{ 
+        backgroundImage: 'linear-gradient(rgba(15, 23, 42, 0.7), rgba(15, 23, 42, 0.7)), url("/auth-bg.png")',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundAttachment: 'fixed'
+      }}
+    >
       <Container maxWidth="xs" className="relative z-10">
         <Fade in={true} timeout={800}>
-          <Paper elevation={24} className="p-8 rounded-3xl bg-white/95 backdrop-blur-xl border border-white/20 shadow-2xl">
-            <Box className="flex flex-col items-center mb-8">
+          <Paper 
+            elevation={24} 
+            className="p-8 pb-12 rounded-[40px] bg-white/10 backdrop-blur-2xl border border-white/20 shadow-2xl overflow-hidden"
+            sx={{ boxShadow: '0 20px 50px rgba(0,0,0,0.3)' }}
+          >
+            <Box className="flex flex-col items-center mb-10 pt-4">
               <Avatar className="bg-blue-600 w-14 h-14 mb-4 shadow-lg shadow-blue-500/30">
                 <Bookmark className="w-7 h-7 text-white" />
               </Avatar>
-              <Typography variant="h4" className="font-black text-slate-900 tracking-tight">
+              <Typography variant="h4" className="font-black text-white tracking-tight">
                 Vaultify
               </Typography>
-              <Typography variant="body2" className="text-slate-500 font-medium">
+              <Typography variant="body2" className="text-blue-200/60 font-medium">
                 Your digital bookmarks, secured.
               </Typography>
             </Box>
@@ -59,14 +68,17 @@ const AuthPage = () => {
               value={tab}
               onChange={(_, v) => setTab(v)}
               variant="fullWidth"
-              className="mb-8 border-b border-slate-100"
-              sx={{ '& .MuiTabs-indicator': { height: 3, borderRadius: '3px 3px 0 0' } }}
+              className="mb-8 border-b border-white/10"
+              sx={{ 
+                '& .MuiTabs-indicator': { height: 3, borderRadius: '3px 3px 0 0', backgroundColor: '#3b82f6' },
+                '& .MuiTab-root': { color: 'rgba(255,255,255,0.5)', fontWeight: 700, '&.Mui-selected': { color: '#fff' } }
+              }}
             >
-              <Tab label="Login" className="font-bold lowercase py-4" />
-              <Tab label="Register" className="font-bold lowercase py-4" />
+              <Tab label="Login" className="lowercase py-4" />
+              <Tab label="Register" className="lowercase py-4" />
             </Tabs>
 
-            <form onSubmit={handleSubmit} className="space-y-5">
+            <form onSubmit={handleSubmit} className="space-y-6">
               {tab === 1 && (
                 <TextField
                   fullWidth
@@ -75,7 +87,11 @@ const AuthPage = () => {
                   value={form.name}
                   onChange={e => setForm({ ...form, name: e.target.value })}
                   InputProps={{
-                    startAdornment: <InputAdornment position="start"><User className="w-4 h-4 text-slate-400" /></InputAdornment>,
+                    startAdornment: <InputAdornment position="start"><User className="w-4 h-4 text-blue-300/50" /></InputAdornment>,
+                  }}
+                  sx={{ 
+                    '& .MuiOutlinedInput-root': { color: '#fff', '& fieldset': { borderColor: 'rgba(255,255,255,0.2)' }, '&:hover fieldset': { borderColor: 'rgba(255,255,255,0.4)' } },
+                    '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.5)' }
                   }}
                   variant="outlined"
                   required
@@ -90,7 +106,11 @@ const AuthPage = () => {
                 value={form.email}
                 onChange={e => setForm({ ...form, email: e.target.value })}
                 InputProps={{
-                  startAdornment: <InputAdornment position="start"><Mail className="w-4 h-4 text-slate-400" /></InputAdornment>,
+                  startAdornment: <InputAdornment position="start"><Mail className="w-4 h-4 text-blue-300/50" /></InputAdornment>,
+                }}
+                sx={{ 
+                  '& .MuiOutlinedInput-root': { color: '#fff', '& fieldset': { borderColor: 'rgba(255,255,255,0.2)' }, '&:hover fieldset': { borderColor: 'rgba(255,255,255,0.4)' } },
+                  '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.5)' }
                 }}
                 variant="outlined"
                 required
@@ -103,14 +123,18 @@ const AuthPage = () => {
                 value={form.password}
                 onChange={e => setForm({ ...form, password: e.target.value })}
                 InputProps={{
-                  startAdornment: <InputAdornment position="start"><Lock className="w-4 h-4 text-slate-400" /></InputAdornment>,
+                  startAdornment: <InputAdornment position="start"><Lock className="w-4 h-4 text-blue-300/50" /></InputAdornment>,
                   endAdornment: (
                     <InputAdornment position="end">
-                      <IconButton onClick={() => setShowPassword(!showPassword)} edge="end">
+                      <IconButton onClick={() => setShowPassword(!showPassword)} edge="end" sx={{ color: 'rgba(255,255,255,0.5)' }}>
                         {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                       </IconButton>
                     </InputAdornment>
                   ),
+                }}
+                sx={{ 
+                  '& .MuiOutlinedInput-root': { color: '#fff', '& fieldset': { borderColor: 'rgba(255,255,255,0.2)' }, '&:hover fieldset': { borderColor: 'rgba(255,255,255,0.4)' } },
+                  '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.5)' }
                 }}
                 variant="outlined"
                 required
