@@ -1,10 +1,9 @@
-// Auth helpers — stored in localStorage with 2-hour expiry
 const TOKEN_KEY = 'bm_token'
 const USER_KEY = 'bm_user'
 const EXPIRY_KEY = 'bm_expiry'
 
-export const saveAuth = (token, user) => {
-  const expiry = Date.now() + 2 * 60 * 60 * 1000 // 2 hours
+export const setAuth = (token, user) => {
+  const expiry = Date.now() + 2 * 60 * 60 * 1000
   localStorage.setItem(TOKEN_KEY, token)
   localStorage.setItem(USER_KEY, JSON.stringify(user))
   localStorage.setItem(EXPIRY_KEY, expiry.toString())
