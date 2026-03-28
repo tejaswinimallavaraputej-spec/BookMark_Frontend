@@ -9,6 +9,8 @@ export const setAuth = (token, user) => {
   localStorage.setItem(EXPIRY_KEY, expiry.toString())
 }
 
+
+
 export const getToken = () => {
   const expiry = localStorage.getItem(EXPIRY_KEY)
   if (expiry && Date.now() > parseInt(expiry)) {

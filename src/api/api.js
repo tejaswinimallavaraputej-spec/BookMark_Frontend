@@ -1,12 +1,13 @@
 import axios from 'axios'
+import { getToken, clearAuth } from '../utils/auth'
 
 const API = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'https://bookmark-backend-uuch.onrender.com',
-  timeout: 10000,
+  baseURL: import.meta.env.VITE_API_BASE_URL || 'https://demo-deployment10-l8mp.onrender.com',
+  timeout: 60000,
 })
 
 API.interceptors.request.use((config) => {
-  const token = localStorage.getItem('bm_token')
+  const token = getToken()
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
   }
@@ -17,8 +18,7 @@ API.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem('bm_token')
-      localStorage.removeItem('bm_user')
+      clearAuth()
       window.location.href = '/auth'
     }
     return Promise.reject(error)
@@ -27,7 +27,7 @@ API.interceptors.response.use(
 
 export const register = (data) => API.post('/register', data)
 export const login = (data) => API.post('/login', data)
-export const getBookmarks = (page, size, search, onlyMine = false) => 
+export const getBookmarks = (page, size, search, onlyMine = false) =>
   API.get(`/bookmarks?page=${page}&size=${size}&search=${search || ''}&onlyMine=${onlyMine}`)
 export const createBookmark = (data) => API.post('/bookmarks', data)
 export const updateBookmark = (id, data) => API.put(`/bookmarks/${id}`, data)

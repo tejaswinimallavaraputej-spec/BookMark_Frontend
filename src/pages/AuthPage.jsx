@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Container, Box, Paper, Typography, TextField, Button,
@@ -18,6 +18,12 @@ const AuthPage = () => {
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [form, setForm] = useState({ name: '', email: '', password: '' })
+
+  useEffect(() => {
+    if (localStorage.getItem('bm_token')) {
+      navigate('/')
+    }
+  }, [navigate])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
